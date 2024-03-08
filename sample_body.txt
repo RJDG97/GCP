@@ -1,0 +1,8 @@
+{
+  "project-id": "renzo-intern-lab",
+  "location": "northamerica-northeast2",
+  "keyring": "cmek-rotation-keyring",
+  "cmek": "cmek-rotation-key",
+  "dummy_cmek": "cmek-rotation-key-dummy",
+  "bucket": "cmek-rotation-test-bucket"
+}
