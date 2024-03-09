@@ -59,7 +59,7 @@ You may Force Trigger to test the scheduler
 ### Dependencies
 These libraries are used within the function for the following reasons
 
-```
+```python
 import base64
 import json
 import functions_framework
@@ -79,7 +79,7 @@ import googleapiclient.discovery
 ### Initialize API Clients
 Aside from initializing the KMS and logging API Clients, the following code also applies Application Default Credentials (ADC)
 
-```
+```python
 # Initialize clients
 kms_client = kms.KeyManagementServiceClient()    
 logging_client = googleapiclient.discovery.build('logging', 'v2')
@@ -89,7 +89,7 @@ logging_client = googleapiclient.discovery.build('logging', 'v2')
 cloud_event is passed into the function containing the message from the scheduler,
 the following code decodes it back into variables that can be used
 
-```
+```python
 # Decode message
 data_string = base64.b64decode(cloud_event.data["message"]["data"])
 data_string = data_string.decode('utf-8').strip("'")
@@ -107,7 +107,7 @@ bucket = message_data["message"]["bucket"]
 ### Manually Rotating CMEK
 This section rotates the given cmek and updates the cmek to use the new version as its primary
 
-```
+```python
 # Set key path
 key_path=f"projects/{projectId}/locations/{location}/keyRings/{keyring}/cryptoKeys/{cmek}"
 dummy_key_path=f"projects/{projectId}/locations/{location}/keyRings/{keyring}/cryptoKeys/{dummy_cmek}"
@@ -126,7 +126,7 @@ print( f"CMEK: [{cmek}] succesfully rotated")
 The following code updates the Log Bucket with a CMEK, a secondary cmek is applied to the log bucket first before re-applying the primary cmek with the latest key to the log bucket, this is done the log bucket cannot be updated to use the newer version of a cmek that is currently in use.
 [Reference docummentation](https://cloud.google.com/logging/docs/routing/managed-encryption-storage)
 
-```
+```python
 # Create the bucket update request body
 bucket_body = {
     "name": bucket,
