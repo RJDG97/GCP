@@ -19,20 +19,18 @@ Cloud function once triggered will run the script that manually rotates the cmek
 
  - Under Cloud Functions, create a new function
  - Set the following in the setup page
-    Basics
+    #### Basics
     - Environment: 2nd gen
     - Function name: name
     - Region: region
-    Trigger
+    #### Trigger
     - Trigger type: Cloud Pub/Sub
     - Cloud Pub/Sub topic: Create or use your already created topic
     - More Options/Service account: Select the service account with the roles mentioned in the pre-requisites section (Requires Cloud Run Invoker to trigger function)
     Runtime, build, connections and security settings
     - Runtime service account: Select the service account with the roles mentioned in the pre-requisites section
-
-    Select Next
-
-    Code
+    - Select Next
+    #### Code
     - Runtime: Python 3.12
     - Replace the main and the requirements with the files in this repo
     - You may test the function with the sample_body.txt as a reference
@@ -43,12 +41,12 @@ Cloud Scheduler triggers the Cloud function previously created through Pub/Sub.
 
  - Under Cloud Scheduler, create a new job
  - Set the following in the setup page
-    Define the schedule
+    #### Define the schedule
     - Name: name
     - Region: region
     - Frequency: frequency or trigger
     - Timezone: Timezone referenced in Frequency
-    Configure the execution
+    #### Configure the execution
     - Target type: Pub/Sub
     - Cloud Pub/Sub topic: Topic used in Cloud Function
     - Message body: refer to sample_body.txt and edit accordingly
@@ -61,44 +59,37 @@ You may Force Trigger to test the scheduler
 ### Dependencies
 These libraries are used within the function for the following reasons
 
-'''
+```
 import base64
 import json
 import functions_framework
 import time
 import google.cloud.kms_v1 as kms
 import googleapiclient.discovery
-'''
+```
 
 | base64                    | decode message data                                      |
-|---------------------------|----------------------------------------------------------|
 | json                      | format decoded data to json                              |
-|---------------------------|----------------------------------------------------------|
 | base64                    | decode message data                                      |
-|---------------------------|----------------------------------------------------------|
 | functions_framework       | retrieve the pub/sub message from cloud scheduler        |
-|---------------------------|----------------------------------------------------------|
 | time                      | sleep function to wait for primary key to finish updating|
-|---------------------------|----------------------------------------------------------|
 | google.cloud.kms_v1       | Access key management service to update cmek             |
-|---------------------------|----------------------------------------------------------|
 | googleapiclient.discovery | Access logging api to update log buckets                 |
-|---------------------------|----------------------------------------------------------|
 
 ### Initialize API Clients
 Aside from initializing the KMS and logging API Clients, the following code also applies Application Default Credentials (ADC)
 
-'''
+```
 # Initialize clients
 kms_client = kms.KeyManagementServiceClient()    
 logging_client = googleapiclient.discovery.build('logging', 'v2')
-'''
+```
 
 ### Decoding data
 cloud_event is passed into the function containing the message from the scheduler,
 the following code decodes it back into variables that can be used
 
-'''
+```
 # Decode message
 data_string = base64.b64decode(cloud_event.data["message"]["data"])
 data_string = data_string.decode('utf-8').strip("'")
@@ -111,12 +102,12 @@ keyring = message_data["message"]["keyring"]
 cmek = message_data["message"]["cmek"]
 dummy_cmek = message_data["message"]["dummy_cmek"]
 bucket = message_data["message"]["bucket"]
-'''
+```
 
 ### Manually Rotating CMEK
 This section rotates the given cmek and updates the cmek to use the new version as its primary
 
-'''
+```
 # Set key path
 key_path=f"projects/{projectId}/locations/{location}/keyRings/{keyring}/cryptoKeys/{cmek}"
 dummy_key_path=f"projects/{projectId}/locations/{location}/keyRings/{keyring}/cryptoKeys/{dummy_cmek}"
@@ -129,13 +120,13 @@ version_id = new_key.name.split('cryptoKeyVersions/',1)[1]
 new_primary = kms_client.update_crypto_key_primary_version(request={"name": key_path, "crypto_key_version_id": version_id})
 time.sleep(60)
 print( f"CMEK: [{cmek}] succesfully rotated")
-'''
+```
 
 ### Updating the CMEK enabled Log Bucket
 The following code updates the Log Bucket with a CMEK, a secondary cmek is applied to the log bucket first before re-applying the primary cmek with the latest key to the log bucket, this is done the log bucket cannot be updated to use the newer version of a cmek that is currently in use.
 [Reference docummentation](https://cloud.google.com/logging/docs/routing/managed-encryption-storage)
 
-'''
+```
 # Create the bucket update request body
 bucket_body = {
     "name": bucket,
@@ -153,4 +144,4 @@ request = logging_client.projects().locations().buckets().patch(
 response = request.execute()
 
 print(f"Log bucket updated successfully: {response}")
-'''
+```
