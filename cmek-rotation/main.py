@@ -1,36 +1,31 @@
+import base64
+import json
 import functions_framework
 
-@functions_framework.http
-def rotate_cmek(request):
-    import subprocess
-    import time
- 
+# Triggered from a message on a Cloud Pub/Sub topic.
+@functions_framework.cloud_event
+def rotate_cmek(cloud_event): 
     # Import libraries
-    import google
+    import time
     import google.cloud.kms_v1 as kms
     import googleapiclient.discovery
 
-    Variables
-    if request.method == 'POST':
-        data = request.get_json()
-        projectId = data.get('project-id')
-        location = data.get('location')
-        keyring = data.get('keyring')
-        cmek = data.get('cmek')
-        dummy_cmek = data.get('dummy_cmek')
-        bucket = data.get('bucket')
-    else:
-        return 'Method not allowed'
+    # Decode message
+    data_string = base64.b64decode(cloud_event.data["message"]["data"])
+    data_string = data_string.decode('utf-8').strip("'")
+    message_data = json.loads(data_string)
+
+    # Variables
+    projectId = message_data['message']['project-id']
+    location = message_data["message"]["location"]
+    keyring = message_data["message"]["keyring"]
+    cmek = message_data["message"]["cmek"]
+    dummy_cmek = message_data["message"]["dummy_cmek"]
+    bucket = message_data["message"]["bucket"]
 
     # Initialize clients
-    
-    # Authentication using Application Default Credentials (ADC)
-    # Ensure your environment is set up for ADC before running this script.
-    credentials, project = google.auth.default()
-
-    # Create a Cloud Logging API client
+    kms_client = kms.KeyManagementServiceClient()    
     logging_client = googleapiclient.discovery.build('logging', 'v2')
-    kms_client = kms.KeyManagementServiceClient()
 
     # Set key path
     key_path=f"projects/{projectId}/locations/{location}/keyRings/{keyring}/cryptoKeys/{cmek}"
