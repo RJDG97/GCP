@@ -2,6 +2,9 @@
 
 Within Google Cloud Platform, this is a guide to set up a cloud scheduler that uses pub/sub to trigger cloud function that manually rotates a given cmek and updates given log buckets that use the rotate cmek with the latest key version.
 
+![Architecture Diagram.](CMEK-rotation-architecture.png)
+
+
 ## Pre-requisites
  - Customer managed encryption key (CMEK)
  - Secondary CMEK
