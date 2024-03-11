@@ -12,6 +12,7 @@ Within Google Cloud Platform, this is a guide to set up a cloud scheduler that u
  - Pub/Sub Topic
  - Service Account with the following roles:
     - Cloud Run Invoker
+    - Cloud KMS Admin
     - Cloud KMS CryptoKey Encrypter/Decrypter
     - Logging Admin
 
@@ -70,7 +71,8 @@ import time
 import google.cloud.kms_v1 as kms
 import googleapiclient.discovery
 ```
-
+| Library                   | Use case                                                 |
+|---------------------------|----------------------------------------------------------|
 | base64                    | decode message data                                      |
 | json                      | format decoded data to json                              |
 | base64                    | decode message data                                      |
@@ -127,7 +129,7 @@ print( f"CMEK: [{cmek}] succesfully rotated")
 
 ### Updating the CMEK enabled Log Bucket
 The following code updates the Log Bucket with a CMEK, a secondary cmek is applied to the log bucket first before re-applying the primary cmek with the latest key to the log bucket, this is done the log bucket cannot be updated to use the newer version of a cmek that is currently in use.
-[Reference docummentation](https://cloud.google.com/logging/docs/routing/managed-encryption-storage)
+[Reference documentation](https://cloud.google.com/logging/docs/routing/managed-encryption-storage)
 
 ```python
 # Create the bucket update request body
