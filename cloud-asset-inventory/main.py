@@ -38,8 +38,9 @@ def export_cai_to_bigquery(cloud_event):
     
     asset_api_name = message_data["asset"]["assetType"].split(".googleapis.com",1)[0]
     print(f"Processing data asset type: {asset_api_name}")
-    dataset_id = f"{project_id}.cai_dataset"
-    table_name = f"cai_{asset_api_name}_table"
+    dataset_name = "cai_dataset"
+    dataset_id = f"{project_id}.{dataset_name}"
+    table_name = "cai_table"
     table_id = f"{dataset_id}.{table_name}"
 
     dataset = client.create_dataset(dataset_id, exists_ok=True)
