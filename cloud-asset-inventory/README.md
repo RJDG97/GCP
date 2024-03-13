@@ -40,9 +40,9 @@ Cloud Assets creates a feed that sends a message to Pub/Sub whenever the stated 
     - You can specify a specific asset type but ".*.googleapis.com.*" handles all APIs
     - Additionally, you can specify different content-types ([reference](https://cloud.google.com/asset-inventory/docs/overview#content_types))
     - [Reference Documentation](https://cloud.google.com/asset-inventory/docs/monitoring-asset-changes)
- '''shell
+ ```shell
  gcloud asset feeds create FEED_NAME-<content-type> --project <project-id>  --pubsub-topic projects/<project-id> /topics/<topic-name> --asset-types ".*.googleapis.com.*" --content-type  <content-type>
- '''
+ ```
 
 ## Code
 
@@ -104,7 +104,7 @@ This section calls the function that generates the schema and new message body t
 The Function is made recursive to allow nested schema to be generated from nested jsons.
 A new json is also generated as the message needs to be altered to comply with big query as it does not accept certain special characters.
 
-'''python
+```python
 # Recursive function to define schema
 def append_data_to_schema(schema, data):
     # New json to support the bq table names
@@ -135,7 +135,7 @@ def append_data_to_schema(schema, data):
             new_json[key] = value
 
     return schema, new_json
-'''
+```
 
 ### Get/Create BigQuery datasets and tables for the data to be imported to
 Creates a dataset and table if not already available
@@ -157,9 +157,9 @@ Creates a dataset and table if not already available
 ### Import data into BigQuery
 Inserts data into BigQuery
 
-'''python
+```python
     if errors:
         print(f"ERROR: while inserting {asset_api_name}.{asset_name} CAI data: {errors}")
     else:
         print(f"SUCCESS: {asset_api_name}.{asset_name} CAI data succesfully exported to big query")
-'''
+```
