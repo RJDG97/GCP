@@ -63,7 +63,7 @@ def export_cai_to_bigquery(cloud_event):
     client.create_table(table, exists_ok=True)
 
     # Insert CAI data into BigQuery table
-    errors = client.insert_rows_json(table, rows)
+    errors = client.insert_rows(table, rows)
     
     if errors:
         print(f"Errors while inserting CAI data: {errors}")
