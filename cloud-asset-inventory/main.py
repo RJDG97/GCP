@@ -9,8 +9,10 @@ from google.auth import default
 def append_data_to_schema(schema, data):
     # New json to support the bq table names
     new_json={}
+    counter = 0
     # Define schema dynamically based on top-level data keys and nested data structure
     for key, value in data.items():
+        # Remove unsupported characters
         key = key.replace('.', '-')
         key = key.replace('/', '_')
 
@@ -18,10 +20,33 @@ def append_data_to_schema(schema, data):
             # Handle list (adjust data type for elements as needed)
             schema.append(bigquery.SchemaField(key, 'BOOL'))
             new_json[key] = value
+        elif isinstance(value, int):
+            # Handle list (adjust data type for elements as needed)
+            schema.append(bigquery.SchemaField(key, 'INTEGER'))
+            new_json[key] = value
+        elif isinstance(value, float):
+            # Handle list (adjust data type for elements as needed)
+            schema.append(bigquery.SchemaField(key, 'FLOAT'))
+            new_json[key] = value
+        # elif "location" == key:
+        #     # Handle list (adjust data type for elements as needed)
+        #     schema.append(bigquery.SchemaField(key, 'GEOGRAPHY'))
+        #     new_json[key] = value   
         elif isinstance(value, list):
             # Handle list (adjust data type for elements as needed)
-            schema.append(bigquery.SchemaField(key, 'STRING', mode='REPEATED'))
-            new_json[key] = value
+            if isinstance(value[0], dict):
+                nested_schema_list=[]
+                nested_json_list=[]
+
+                for nested_value in value:
+                    _, json = append_data_to_schema(nested_schema_list, nested_value)
+                    nested_json_list.append(json)
+
+                schema.append(bigquery.SchemaField(key, 'RECORD', fields=nested_schema_list, mode='REPEATED'))
+                new_json[key] = nested_json_list
+            else:
+                schema.append(bigquery.SchemaField(key, 'STRING', mode='REPEATED'))
+                new_json[key] = value
         elif isinstance(value, dict):
             # Handle nested data (adjust data types for nested fields)
             nested_schema = []
