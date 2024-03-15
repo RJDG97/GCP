@@ -5,61 +5,74 @@ import functions_framework
 from google.cloud import bigquery
 from google.auth import default
 
+def modify_json_for_bq(nested_json):
+
+    if isinstance(nested_json, dict):
+        if nested_json == {}:
+            return
+        # Handle dictionaries:
+        modified_dict = {}
+        for key, value in nested_json.items():
+            # Remove unsupported characters
+            key = key.replace('.', '-')
+            key = key.replace('/', '_')
+
+            new_value = modify_json_for_bq(value)
+            # Omit empty json, BQ does not support this
+            if new_value is not None:
+                modified_dict[key] = new_value
+            else:
+                print(f"Warning: Empty json [{key}] found, removing to comply with BigQuery")
+
+        return modified_dict
+
+    elif isinstance(nested_json, list):
+        # Handle lists:
+        return [modify_json_for_bq(item) for item in nested_json]
+
+    else:
+        # Handle other data types (no modification needed):
+        return nested_json
+
 # Recursive function to define schema
-def append_data_to_schema(schema, data):
-    # New json to support the bq table names
-    new_json={}
-    counter = 0
+def generate_schema_from_json(schema, data):
     # Define schema dynamically based on top-level data keys and nested data structure
     for key, value in data.items():
-        # Remove unsupported characters
-        key = key.replace('.', '-')
-        key = key.replace('/', '_')
 
         if isinstance(value, bool):
             # Handle list (adjust data type for elements as needed)
             schema.append(bigquery.SchemaField(key, 'BOOL'))
-            new_json[key] = value
         elif isinstance(value, int):
             # Handle list (adjust data type for elements as needed)
             schema.append(bigquery.SchemaField(key, 'INTEGER'))
-            new_json[key] = value
         elif isinstance(value, float):
             # Handle list (adjust data type for elements as needed)
             schema.append(bigquery.SchemaField(key, 'FLOAT'))
-            new_json[key] = value
         # elif "location" == key:
         #     # Handle list (adjust data type for elements as needed)
         #     schema.append(bigquery.SchemaField(key, 'GEOGRAPHY'))
-        #     new_json[key] = value   
         elif isinstance(value, list):
             # Handle list (adjust data type for elements as needed)
             if isinstance(value[0], dict):
-                nested_schema_list=[]
-                nested_json_list=[]
-
-                for nested_value in value:
-                    _, json = append_data_to_schema(nested_schema_list, nested_value)
-                    nested_json_list.append(json)
-
-                schema.append(bigquery.SchemaField(key, 'RECORD', fields=nested_schema_list, mode='REPEATED'))
-                new_json[key] = nested_json_list
+                nested_schema = []
+                generate_schema_from_json(nested_schema, value[0])
+                schema.append(bigquery.SchemaField(key, 'RECORD', fields=nested_schema, mode='REPEATED'))
             else:
                 schema.append(bigquery.SchemaField(key, 'STRING', mode='REPEATED'))
-                new_json[key] = value
         elif isinstance(value, dict):
-            # Handle nested data (adjust data types for nested fields)
-            nested_schema = []
-            _, json = append_data_to_schema(nested_schema, value)
-            schema.append(bigquery.SchemaField(key, 'RECORD', fields=nested_schema))
-            new_json[key] = json
+            if value == {}:
+                # Handle empty json, treat
+                schema.append(bigquery.SchemaField(key, 'NULL', mode='NULLABLE'))
+            else:
+                # Handle nested data (adjust data types for nested fields)
+                nested_schema = []
+                generate_schema_from_json(nested_schema, value)
+                schema.append(bigquery.SchemaField(key, 'RECORD', fields=nested_schema))
         else:
             # Handle other data types (adjust as needed)
-            schema_type = 'STRING'
-            schema.append(bigquery.SchemaField(key, schema_type))
-            new_json[key] = value
+            schema.append(bigquery.SchemaField(key, 'STRING'))
 
-    return schema, new_json
+    return schema
 
 # Triggered from a message on a Cloud Pub/Sub topic.
 @functions_framework.cloud_event
@@ -80,20 +93,21 @@ def export_cai_to_bigquery(cloud_event):
     asset_name = message_body["assetType"].split(".googleapis.com/",1)[1]
     print(f"Log: {asset_api_name}.{asset_name} Processing data asset type: {asset_api_name}")
     print(f"Log: {asset_api_name}.{asset_name} message_body: {message_body}")
-
+    message_body = modify_json_for_bq(message_body)
+    print(f"Log: {asset_api_name}.{asset_name} modified_message_body: {message_body}")
     # Extract fields for BigQuery schema
     schema = []
-    schema, data = append_data_to_schema(schema, message_body)
+    schema = generate_schema_from_json(schema, message_body)
     print(f"Log: {asset_api_name}.{asset_name} schema generated: {schema}")
-    print(f"Log: {asset_api_name}.{asset_name} updated_body: {data}")
-    rows = tuple(data.values())
+    print(f"Log: {asset_api_name}.{asset_name} updated_body: {message_body}")
+    rows = tuple(message_body.values())
 
     # Seperate APIs into different datasets
-    dataset_name = f"{asset_api_name}_cai_dataset"
+    dataset_name = f"cai_dataset_{asset_api_name}"
     dataset_id = f"{project_id}.{dataset_name}"
 
     # Seperate assets into different tables
-    table_name = f"{asset_name}_cai_table"
+    table_name = f"cai_table_{asset_name}"
     table_id = f"{dataset_id}.{table_name}"
 
     # Create/Set Dataset and table to export data to BigQuery
