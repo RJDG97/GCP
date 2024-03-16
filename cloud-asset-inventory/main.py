@@ -2,6 +2,7 @@ import base64
 import json
 import functions_framework
 
+from datetime import datetime
 from google.cloud import bigquery
 from google.auth import default
 
@@ -35,42 +36,44 @@ def modify_json_for_bq(nested_json):
         return nested_json
 
 # Recursive function to define schema
-def generate_schema_from_json(schema, data):
+def generate_schema_from_json(data):
+    schema = []
     # Define schema dynamically based on top-level data keys and nested data structure
     for key, value in data.items():
 
         if isinstance(value, bool):
-            # Handle list (adjust data type for elements as needed)
+            # Handle boolean
             schema.append(bigquery.SchemaField(key, 'BOOL'))
         elif isinstance(value, int):
-            # Handle list (adjust data type for elements as needed)
+            # Handle integer
             schema.append(bigquery.SchemaField(key, 'INTEGER'))
         elif isinstance(value, float):
-            # Handle list (adjust data type for elements as needed)
-            schema.append(bigquery.SchemaField(key, 'FLOAT'))
-        # elif "location" == key:
-        #     # Handle list (adjust data type for elements as needed)
-        #     schema.append(bigquery.SchemaField(key, 'GEOGRAPHY'))
+            # Handle float
+            schema.append(bigquery.SchemaField(key, 'FLOAT64'))
         elif isinstance(value, list):
-            # Handle list (adjust data type for elements as needed)
+            # Handle list
             if isinstance(value[0], dict):
-                nested_schema = []
-                generate_schema_from_json(nested_schema, value[0])
+                nested_schema = generate_schema_from_json(value[0])
                 schema.append(bigquery.SchemaField(key, 'RECORD', fields=nested_schema, mode='REPEATED'))
             else:
                 schema.append(bigquery.SchemaField(key, 'STRING', mode='REPEATED'))
         elif isinstance(value, dict):
-            if value == {}:
-                # Handle empty json, treat
-                schema.append(bigquery.SchemaField(key, 'NULL', mode='NULLABLE'))
+            # Handle geography
+            if "type" in value and "coordinates" in value:
+                schema.append(bigquery.SchemaField(key, 'GEOGRAPHY'))
             else:
                 # Handle nested data (adjust data types for nested fields)
-                nested_schema = []
-                generate_schema_from_json(nested_schema, value)
+                nested_schema = generate_schema_from_json(value)
                 schema.append(bigquery.SchemaField(key, 'RECORD', fields=nested_schema))
         else:
-            # Handle other data types (adjust as needed)
-            schema.append(bigquery.SchemaField(key, 'STRING'))
+            # Handle time
+            try:
+                datetime.fromisoformat(value)
+                schema.append(bigquery.SchemaField(key, 'TIMESTAMP'))
+            except:
+                # Handle other data types (adjust as needed)
+                schema.append(bigquery.SchemaField(key, 'STRING'))
+                pass
 
     return schema
 
@@ -96,8 +99,7 @@ def export_cai_to_bigquery(cloud_event):
     message_body = modify_json_for_bq(message_body)
     print(f"Log: {asset_api_name}.{asset_name} modified_message_body: {message_body}")
     # Extract fields for BigQuery schema
-    schema = []
-    schema = generate_schema_from_json(schema, message_body)
+    schema = generate_schema_from_json(message_body)
     print(f"Log: {asset_api_name}.{asset_name} schema generated: {schema}")
     print(f"Log: {asset_api_name}.{asset_name} updated_body: {message_body}")
     rows = tuple(message_body.values())
