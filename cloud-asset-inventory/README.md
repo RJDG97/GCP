@@ -2,11 +2,28 @@
 
 Within Google Cloud Platform, this is a guide to set up a cloud asset feed that uses pub/sub to trigger cloud function that exports feed data from cloud assets into bigquery.
 
+![Architecture Diagram.](CAI_Export_Architecture.png)
+
+## How it works
+The script triggers when Cloud Assets Inventory feed sends a message to the pub/sub topic that the Cloud Function containing the script is subscribed to. 
+
+From there it decodes the message and processes the data by removing [unsupported characters](https://cloud.google.com/bigquery/docs/schemas) and omitting empty json files as they are not supported in BigQuery
+
+It then generates a schema from the data that is used when inserting the data into BigQuery. 
+
+If the defined dataset or table within the script is not available, it will create them (This may result in an initial error when creating as it will try to insert the data into a non-existant dataset/table).
+
+Lastly, it inserts the data into the table
+
 ## Pre-requisites
  - Enable Cloud Asset API & Cloud Resource Manager
  - Create a pub/sub topic
  - Service Account with the following roles:
     - Cloud Run Invoker
+    - BigQuery Admin
+    - Logs Writer
+    - Storage Object Admin
+    - Artifact Registry Create-on-Push Writer
 
 ## Setup
 
@@ -53,6 +70,7 @@ These libraries are used within the function for the following reasons
 import base64
 import json
 import functions_framework
+from datetime import datetime
 from google.cloud import bigquery
 from google.auth import default
 ```
@@ -62,6 +80,7 @@ from google.auth import default
 | json                      | format decoded data to json                              |
 | base64                    | decode message data                                      |
 | functions_framework       | retrieve the pub/sub message from cloud assets           |
+| datetime                  | Identify timestamp data type when parsing json           |
 | google.cloud.bigquery     | Access biqguery to create/insert dataset/table/data      |
 | google.auth.default       | Get Project ID                                           |
 
@@ -88,53 +107,99 @@ the following code decodes it back into a json that can be used.
     message_body = message_data["asset"]
 ```
 
-### Generate Schema and updated json that to complies with biguery
-This section calls the function that generates the schema and new message body that complies to bigquery
+### Modify json to comply with biguery
+The function recursively goes through the json to update key names with unsupported characters
+and replaces them. Additionally, this also ommits any json that is empty or null
+[Documentation](https://cloud.google.com/bigquery/docs/schemas)
 
 ```python
-    # Extract fields for BigQuery schema
-    schema = []
-    schema, data = append_data_to_schema(schema, message_body)
-    print(f"Log: {asset_api_name}.{asset_name} schema generated: {schema}")
-    print(f"Log: {asset_api_name}.{asset_name} updated_body: {data}")
-    rows = tuple(data.values())
+def modify_json_for_bq(nested_json):
+    if isinstance(nested_json, dict):
+        if nested_json == {}:
+            return
+        # Handle dictionaries:
+        modified_dict = {}
+        for key, value in nested_json.items():
+            # Remove unsupported characters
+            key = key.replace('.', '-')
+            key = key.replace('/', '_')
+            new_value = modify_json_for_bq(value)
+            # Omit empty json, BQ does not support this
+            if new_value is not None:
+                modified_dict[key] = new_value
+            else:
+                print(f"Warning: Empty json [{key}] found, removing to comply with BigQuery")
+        return modified_dict
+    elif isinstance(nested_json, list):
+        # Handle lists:
+        return [modify_json_for_bq(item) for item in nested_json]
+    else:
+        # Handle other data types (no modification needed):
+        return nested_json
+
+# Main Function call
+message_body = modify_json_for_bq(message_body)
 ```
 
 ### Recursively go through the json to generate a new schema and json body
-The Function is made recursive to allow nested schema to be generated from nested jsons.
-A new json is also generated as the message needs to be altered to comply with big query as it does not accept certain special characters.
+The Function generates a schema from the provided Json data it is used together with the function in the following section
 
 ```python
 # Recursive function to define schema
-def append_data_to_schema(schema, data):
-    # New json to support the bq table names
-    new_json={}
+def generate_schema_from_json(data):
+    schema = []
     # Define schema dynamically based on top-level data keys and nested data structure
     for key, value in data.items():
-        key = key.replace('.', '-')
-        key = key.replace('/', '_')
-
-        if isinstance(value, bool):
-            # Handle list (adjust data type for elements as needed)
-            schema.append(bigquery.SchemaField(key, 'BOOL'))
-            new_json[key] = value
-        elif isinstance(value, list):
-            # Handle list (adjust data type for elements as needed)
-            schema.append(bigquery.SchemaField(key, 'STRING', mode='REPEATED'))
-            new_json[key] = value
-        elif isinstance(value, dict):
+        key_type = get_key_type(value)
+        key_mode = 'NULLABLE'
+        nested_schema = []
+        if key_type == 'LIST':
+            # Set mode as Repeated to account for list
+            key_mode='REPEATED'
+            if len(value[0]) == 0:
+                key_type = 'STRING'
+            else:
+                key_type = get_key_type(value[0])
+            # Handle list
+            if key_type == 'RECORD':
+                nested_schema = generate_schema_from_json(value[0])
+        elif key_type == 'RECORD':
             # Handle nested data (adjust data types for nested fields)
-            nested_schema = []
-            _, json = append_data_to_schema(nested_schema, value)
-            schema.append(bigquery.SchemaField(key, 'RECORD', fields=nested_schema))
-            new_json[key] = json
+            nested_schema = generate_schema_from_json(value)
+        if len(nested_schema) == 0:
+            schema.append(bigquery.SchemaField(key, key_type, mode=key_mode))
         else:
-            # Handle other data types (adjust as needed)
-            schema_type = 'STRING'
-            schema.append(bigquery.SchemaField(key, schema_type))
-            new_json[key] = value
+            schema.append(bigquery.SchemaField(key, key_type, fields=nested_schema, mode=key_mode))
+    return schema
 
-    return schema, new_json
+# Main function call
+schema = generate_schema_from_json(message_body)
+```
+
+### Returning a schema key value
+This function determines the value type and returns the key type for the schema
+
+```python
+def get_key_type(value):
+    if isinstance(value, bool):
+        return 'BOOL'
+    elif isinstance(value, int):
+        return 'INTEGER'
+    elif isinstance(value, float):
+        return 'FLOAT64'
+    elif isinstance(value, list):
+        return 'LIST'
+    elif isinstance(value, dict):
+        if "type" in value and "coordinates" in value:
+            return 'GEOGRAPHY'
+        else:
+            return 'RECORD'
+    else:
+        try:
+            datetime.fromisoformat(value)
+            return 'TIMESTAMP'
+        except:
+            return 'STRING'
 ```
 
 ### Get/Create BigQuery datasets and tables for the data to be imported to
@@ -142,11 +207,11 @@ Creates a dataset and table if not already available
 
 ```python
     # Seperate APIs into different datasets
-    dataset_name = f"{asset_api_name}_cai_dataset"
+    dataset_name = f"cai_dataset_{asset_api_name}" # Replace accordingly
     dataset_id = f"{project_id}.{dataset_name}"
 
     # Seperate assets into different tables
-    table_name = f"{asset_name}_cai_table"
+    table_name = f"cai_{asset_api_name}_{asset_name}" # Replace accordingly
     table_id = f"{dataset_id}.{table_name}"
 
     # Create/Set Dataset and table to export data to BigQuery
@@ -158,6 +223,11 @@ Creates a dataset and table if not already available
 Inserts data into BigQuery
 
 ```python
+    rows = tuple(message_body.values())
+
+    # Insert CAI data into BigQuery table
+    errors = client.insert_rows(table, [rows])
+    
     if errors:
         print(f"ERROR: while inserting {asset_api_name}.{asset_name} CAI data: {errors}")
     else:

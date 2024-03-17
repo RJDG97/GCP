@@ -21,7 +21,7 @@ def modify_json_for_bq(nested_json):
             if new_value is not None:
                 modified_dict[key] = new_value
             else:
-                print(f"Warning:[{asset_api_name}.{asset_name}] Empty json [{key}] found, removing to comply with BigQuery")
+                print(f"Warning: Empty json [{key}] found, removing to comply with BigQuery")
         return modified_dict
     elif isinstance(nested_json, list):
         # Handle lists:
@@ -85,14 +85,6 @@ def export_cai_to_bigquery(cloud_event):
     # Connect to BigQuery client
     client = bigquery.Client(project=project_id)
 
-    # Seperate APIs into different datasets
-    dataset_name = f"cai_dataset_{asset_api_name}" # Replace accordingly
-    dataset_id = f"{project_id}.{dataset_name}"
-
-    # Seperate assets into different tables
-    table_name = f"cai_table_{asset_name}" # Replace accordingly
-    table_id = f"{dataset_id}.{table_name}"
-
     # Decode message
     data_string = base64.b64decode(cloud_event.data["message"]["data"])
     data_string = data_string.decode('utf-8').strip("'")
@@ -103,6 +95,7 @@ def export_cai_to_bigquery(cloud_event):
     # Retrieve API and Asset name from Asset type
     asset_api_name = message_body["assetType"].split(".googleapis.com/",1)[0]
     asset_name = message_body["assetType"].split(".googleapis.com/",1)[1]
+
     print(f"Log: [{asset_api_name}.{asset_name}] Processing data asset type: {asset_api_name}")
     print(f"Log: [{asset_api_name}.{asset_name}] message_body: {message_body}")
     message_body = modify_json_for_bq(message_body)
@@ -112,6 +105,14 @@ def export_cai_to_bigquery(cloud_event):
     print(f"Log: [{asset_api_name}.{asset_name}] schema generated: {schema}")
     print(f"Log: [{asset_api_name}.{asset_name}] updated_body: {message_body}")
     rows = tuple(message_body.values())
+
+    # Seperate APIs into different datasets
+    dataset_name = f"cai_dataset_{asset_api_name}" # Replace accordingly
+    dataset_id = f"{project_id}.{dataset_name}"
+
+    # Seperate assets into different tables
+    table_name = f"cai_{asset_api_name}_{asset_name}" # Replace accordingly
+    table_id = f"{dataset_id}.{table_name}"
 
     # Create/Set Dataset and table to export data to BigQuery
     dataset = client.create_dataset(dataset_id, exists_ok=True)
