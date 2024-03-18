@@ -61,4 +61,6 @@ Cloud Assets creates a feed that sends a message to Pub/Sub whenever the stated 
  gcloud asset feeds create FEED_NAME-<content-type> --project <project-id>  --pubsub-topic projects/<project-id> /topics/<topic-name> --asset-types ".*.googleapis.com.*" --content-type  <content-type>
  ```
 
-### Looker Studio Dashboard setup
+### Looker Studio
+Now that we have the data exported to BigQuery, we setup a visualisation dashboard to easily read the data
+refer to the [LookerSetup.md](https://github.com/RJDG97/GCP/blob/main/cloud-asset-inventory/LookerSetup.md) page for more detailed instructions setup instructions
