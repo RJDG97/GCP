@@ -2,18 +2,10 @@
 
 Within Google Cloud Platform, this is a guide to set up a cloud asset feed that uses pub/sub to trigger cloud function that exports feed data from cloud assets into bigquery.
 
-![Architecture Diagram.](CAI_Export_Architecture.png)
+![Architecture Diagram.](architecture.png)
 
 ## How it works
-The script triggers when Cloud Assets Inventory feed sends a message to the pub/sub topic that the Cloud Function containing the script is subscribed to. 
-
-From there it decodes the message and processes the data by removing [unsupported characters](https://cloud.google.com/bigquery/docs/schemas) and omitting empty json files as they are not supported in BigQuery
-
-It then generates a schema from the data that is used when inserting the data into BigQuery. 
-
-If the defined dataset or table within the script is not available, it will create them (This may result in an initial error when creating as it will try to insert the data into a non-existant dataset/table).
-
-Lastly, it inserts the data into the table
+Cloud Scheduler triggers a cloud function through a pub/sub topic, which then calls the Cloud Asset API to export the data onto BigQuery (BigQuery dataset and table need to be created)
 
 ## Pre-requisites
  - Enable Cloud Asset API & Cloud Resource Manager
@@ -24,11 +16,12 @@ Lastly, it inserts the data into the table
     - Logs Writer
     - Storage Object Admin
     - Artifact Registry Create-on-Push Writer
-
+ - Create a BigQuery dataset and table
+ - Cloud Scheduler that pushes to the created topic (frequency of update)
 ## Setup
 
 ### Cloud Function
-Cloud function once triggered will run the script that exports feed data from cloud assets into bigquery.
+Cloud function once triggered will run the script that exports data from cloud assets into bigquery.
 
  - Under Cloud Functions, create a new function
  - Set the following in the setup page
@@ -46,21 +39,7 @@ Cloud function once triggered will run the script that exports feed data from cl
     #### Code
     - Runtime: Python 3.12
     - Replace the main and the requirements with the files in this repo
-    - You may test the function with the sample_body.txt as a reference
+    - Change the dataset_name and table_name in the code to the dataset and table previously created
     - Deploy
 
-### Cloud Assets
-Cloud Assets creates a feed that sends a message to Pub/Sub whenever the stated asset is created, updated, deleted.
-
- - Open Cloud Shell (currently this is the only way to create a feed)
- - Run the following shell scipt to create a feed
-    - You can specify a specific asset type but ".*.googleapis.com.*" handles all APIs
-    - Additionally, you can specify different content-types ([reference](https://cloud.google.com/asset-inventory/docs/overview#content_types))
-    - [Reference Documentation](https://cloud.google.com/asset-inventory/docs/monitoring-asset-changes)
- ```shell
- gcloud asset feeds create FEED_NAME-<content-type> --project <project-id>  --pubsub-topic projects/<project-id> /topics/<topic-name> --asset-types ".*.googleapis.com.*" --content-type  <content-type>
- ```
-
-### Looker Studio
-Now that we have the data exported to BigQuery, we setup a visualisation dashboard to easily read the data
-refer to the [LookerSetup.md](https://github.com/RJDG97/GCP/blob/main/cloud-asset-inventory/LookerSetup.md) page for more detailed instructions setup instructions
+TBC
