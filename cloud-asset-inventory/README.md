@@ -18,6 +18,7 @@ Looker studios can  then connect to the data for visualization.
     - Artifact Registry Create-on-Push Writer
  - Create a pub/sub topic
  - Cloud Scheduler that pushes to the created topic (frequency of update)
+ - Set [Billing data to export to BigQuery](https://cloud.google.com/billing/docs/how-to/export-data-bigquery-setup)
 
 ## Setup
 
