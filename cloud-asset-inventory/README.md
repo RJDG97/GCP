@@ -120,3 +120,15 @@ Available [content types](https://cloud.google.com/asset-inventory/docs/overview
     )
    response = asset_client.export_assets(request=request)
 ```
+
+## Looker Studios
+- On [Looker Studios](https://lookerstudio.google.com/), create a blank report.
+- Select BigQuery.
+- From here, you can either grab the table as is, or you can use CUSTOM QUERY to create data using an SQL call. [Additional info](https://support.google.com/looker-studio/answer/6370296?hl=en&ref_topic=10587734&sjid=4576648556961219928-AP#zippy=%2Cin-this-article)
+- You can further modify the data through [calculated fields](https://support.google.com/looker-studio/answer/9152828?hl=en), you can find a function list [here](https://support.google.com/looker-studio/table/6379764?hl=en)
+- To set the freshness of the data go to the Resource tab and select 'Manage added data sources', edit the selected table and change the data freshness tab at the top accordingly.
+- Refer to the following for the dashboard setup:
+   - [Charts](https://support.google.com/looker-studio/answer/6293184#zippy=%2Cin-this-article)
+   - [Share](https://support.google.com/looker-studio/answer/6296080?hl=en&ref_topic=6289358&sjid=4576648556961219928-AP#zippy=%2Cin-this-article)
+
+For additional information on Looker Studio refer to this [link](https://support.google.com/looker-studio/topic/9170843?hl=en&ref_topic=12398462&sjid=4576648556961219928-AP)
