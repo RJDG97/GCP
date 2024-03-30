@@ -18,7 +18,7 @@ Looker studios can  then connect to the data for visualization.
     - Artifact Registry Create-on-Push Writer
  - Set [Billing data to export to BigQuery](https://cloud.google.com/billing/docs/how-to/export-data-bigquery-setup)
 
-## Setup
+## Setu
 
 ### Big Query
 Here, we will create a dataset for the asset data to be exported into.
@@ -70,6 +70,14 @@ Cloud Scheduler triggers the Cloud function previously created through Pub/Sub.
     - Create
 
 You may Force Trigger to test the scheduler
+
+### Billing
+Exports the billing data periodically to the data set
+- Select 'Go to the Billing export page'
+- At the prompt, choose the Cloud Billing account for which you'd like to export billing data. The Billing export page opens for the selected billing account.
+- On the BigQuery export tab, click Edit settings for each type of data you'd like to export. Each type of data is configured separately.
+- From the Projects list, select the project that you set up to contain your BigQuery dataset.
+- From the Dataset ID field, select the dataset that you set up to contain your exported Cloud Billing data.
 
 ## Code
 This section goes through the script used to export asset data to BigQuery
@@ -180,9 +188,9 @@ Follow the instructions in the previous section to create a report and add the t
 This sections shows how you can create a dashboard to keep track of spending
 ![billing](images/billing.png)
 
-|Table used                                            |                                          |
-|------------------------------------------------------|------------------------------------------| 
-| gcp_billing_export_v1_<BILLING_ACCOUNT_ID>           |                                          |
+|Table used                                            |
+|------------------------------------------------------|
+| gcp_billing_export_v1_<BILLING_ACCOUNT_ID>           |
 
 ![cost_by_project](images/cost_by_project.png)
 - Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
