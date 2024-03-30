@@ -2,7 +2,7 @@
 
 Within Google Cloud Platform, this is a guide to set up a cloud asset feed that uses pub/sub to trigger cloud function that exports feed data from cloud assets into bigquery.
 
-![Architecture Diagram.](architecture.png)
+![Architecture Diagram.](images/architecture.png)
 
 ## How it works
 Cloud Scheduler triggers a cloud function through a pub/sub topic, which then calls the Cloud Asset API to export the data onto BigQuery (BigQuery dataset and table need to be created).
@@ -16,11 +16,21 @@ Looker studios can  then connect to the data for visualization.
     - Logs Writer
     - Storage Object Admin
     - Artifact Registry Create-on-Push Writer
- - Create a pub/sub topic
- - Cloud Scheduler that pushes to the created topic (frequency of update)
  - Set [Billing data to export to BigQuery](https://cloud.google.com/billing/docs/how-to/export-data-bigquery-setup)
 
 ## Setup
+
+### Big Query
+Here, we will create a dataset for the asset data to be exported into.
+ - On the left, select the options (the 3 dots) next to your project 
+ - Select 'Create data set'
+ - Fill in the data set ID and select 'Create Data Set'
+
+### Pub/Sub
+Pub/sub helps manages messages between the scheduler and cloud functions.
+
+ - Select 'Create Topic' and enter a topic name in 'Topic ID'
+ - Select Create
 
 ### Cloud Function
 Cloud function once triggered will run the script that exports data from cloud assets into bigquery.
@@ -43,6 +53,23 @@ Cloud function once triggered will run the script that exports data from cloud a
     - Replace the main and the requirements with the files in this repo
     - Change the dataset_name and table_name in the code to the dataset and table previously created
     - Deploy
+
+### Cloud Scheduler
+Cloud Scheduler triggers the Cloud function previously created through Pub/Sub.
+
+ - Under Cloud Scheduler, create a new job
+ - Set the following in the setup page
+    #### Define the schedule
+    - Name: name
+    - Region: region
+    - Frequency: frequency or trigger
+    - Timezone: Timezone referenced in Frequency
+    #### Configure the execution
+    - Target type: Pub/Sub
+    - Cloud Pub/Sub topic: Topic used in Cloud Function
+    - Create
+
+You may Force Trigger to test the scheduler
 
 ## Code
 This section goes through the script used to export asset data to BigQuery
@@ -123,13 +150,198 @@ Available [content types](https://cloud.google.com/asset-inventory/docs/overview
 ```
 
 ## Looker Studios
+### Dashboard Setup
+#### Creating a report and adding data
 - On [Looker Studios](https://lookerstudio.google.com/), create a blank report.
 - Select BigQuery.
 - From here, you can either grab the table as is, or you can use CUSTOM QUERY to create data using an SQL call. [Additional info](https://support.google.com/looker-studio/answer/6370296?hl=en&ref_topic=10587734&sjid=4576648556961219928-AP#zippy=%2Cin-this-article)
-- You can further modify the data through [calculated fields](https://support.google.com/looker-studio/answer/9152828?hl=en), you can find a function list [here](https://support.google.com/looker-studio/table/6379764?hl=en)
+- You can add more data by selecting the 'Add Data' option in the Data tab and repeating the previous steps.
 - To set the freshness of the data go to the Resource tab and select 'Manage added data sources', edit the selected table and change the data freshness tab at the top accordingly.
+#### Adding or modifying fields
+- You can further modify the data through [calculated fields](https://support.google.com/looker-studio/answer/9152828?hl=en), you can find a function list [here](https://support.google.com/looker-studio/table/6379764?hl=en)
+#### Data Visualisations
 - Refer to the following for the dashboard setup:
    - [Charts](https://support.google.com/looker-studio/answer/6293184#zippy=%2Cin-this-article)
    - [Share](https://support.google.com/looker-studio/answer/6296080?hl=en&ref_topic=6289358&sjid=4576648556961219928-AP#zippy=%2Cin-this-article)
+#### Adding Pages
+- Select the 'page' tab and select 'new page' to create a new page
+- Select the 'page' tab and select 'manage pages' to manage pages created (change order, rename, etc.)
+#### Themes and layout
+- You can select the 'Theme and layout' to select a theme of your choosing
+- You can also selct shapes to organize your charts
 
 For additional information on Looker Studio refer to this [link](https://support.google.com/looker-studio/topic/9170843?hl=en&ref_topic=12398462&sjid=4576648556961219928-AP)
+
+### Dashboard Templates
+In this section we'll go through how you can create some of the following dashboards from the data generated above.
+Follow the instructions in the previous section to create a report and add the table data for the respective sections.
+
+#### Billing
+This sections shows how you can create a dashboard to keep track of spending
+![billing](images/billing.png)
+
+|Table used                                            |                                          |
+|------------------------------------------------------|------------------------------------------| 
+| gcp_billing_export_v1_<BILLING_ACCOUNT_ID>           |                                          |
+
+![cost_by_project](images/cost_by_project.png)
+- Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
+- Select the 'Add a chart' tab, and select the 'Donut chart'
+- Under dimension, select 'project.id'
+- Under metric, select 'cost'
+- You can add text to title the chart
+
+![cost_by_service](images/cost_by_service.png)
+- Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
+- Select the 'Add a chart' tab, and select the 'bar chart'
+- Under dimension, select 'service.description'
+- Under metric, select 'cost'
+- You can add text to title the chart
+
+![cost_by_tag](images/cost_by_tag.png)
+- Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
+- Select the 'Add a chart' tab, and select the 'stacked column chart'
+- Under dimension, select 'tags.key'
+- Under breakdown dimension, select 'tags.value'
+- Under metric, select 'cost'
+- At the bottom of properties, select 'Add a filter' and 'Create a filter'
+- Set the filter to 'exclude' 'tags.key' 'Equal to (=)' 'NULL' (This removes any resources that are not tagged)
+- You can add text to title the chart
+
+![daily_cost](images/daily_cost.png)
+- Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
+- Select the 'Add a chart' tab, and select the 'time series chart'
+- Under dimension, select 'export_time(Date)'
+- Under metric, select 'cost'
+- You can add text to title the chart
+
+![total_cost](images/total_cost.png)
+- Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
+- Select the 'Add a chart' tab, and select the 'Scorecard'
+- Under metric, select 'cost'
+- You can add text to title the chart
+
+![cost_by_month](images/cost_by_month.png)
+- Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
+- Select the 'Add a chart' tab, and select the 'stacked column chart'
+- Under dimension, select 'invoice.month'
+- Under breakdown dimension, select 'service.description'
+- Under metric, select 'cost'
+- Under sort, select 'invoice.month' and select ascending
+- You can add text to title the chart
+
+![controls](images/controls.png)
+- Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
+- Select the 'Add a control' tab, and select the 'date range control'
+- Select the 'Add a control' tab, and select the 'drop-down list'
+   - From there you can select a field as the control field
+
+#### Asset Overview
+This section shows how you can create a dashboard to keep track of multiple assets
+![asset_overview](images/asset_overview.png)
+
+|Table used      |
+|----------------|
+| <content_type> |
+| resource       |
+
+This table is created by setting the 'separate_tables_per_asset_type' to False in the code above.
+Doing so generates a table that is an amalgamation of all asset types
+
+![resource_per_type](images/resource_per_type.png)
+- Select data source as 'resource'
+- Select the 'Add a chart' tab, and select the 'bar chart'
+- Under dimension, select 'asset_type'
+- Under metric, select 'resource.data'
+- You can add text to title the chart
+
+![resource_per_location](images/resource_per_location.png)
+- Select data source as 'resource'
+- Select the 'Add a chart' tab, and select the 'pie chart'
+- Under dimension, select 'resource.location'
+- Under metric, select 'name'
+- You can add text to title the chart
+
+![resource_per_service](images/resource_per_service.png)
+- Select data source as 'resource'
+- Select the 'Add a chart' tab, and select the 'Donut chart'
+- Under dimension, select 'resource.discovery_name'
+- Under metric, select 'Record Count'
+- You can add text to title the chart
+
+![asset_table](images/asset_table.png)
+- Select data source as 'resource'
+- Select the 'Add a chart' tab, and select the 'table'
+- Under dimension, select 'name'
+- Add dimension and select 'resource.location'
+- Do the following for any additional fields you want to see
+- You can add text to title the chart
+
+
+#### Resource specific dashboard (Compute)
+This section shows how you can create a dashboard for specific asset types
+![compute](images/compute.png)
+
+|Table used                                            |                                          |
+|------------------------------------------------------|------------------------------------------| 
+| <content-type>_<service>_googleapis_com_<asset-type> | resource_compute_googleapis_com_instance |
+| gcp_billing_export_v1_<BILLING_ACCOUNT_ID>           |                                          |
+
+This table is created by setting the 'separate_tables_per_asset_type' to True in the code above.
+Doing so generates multiple tables of varying asset types with more data being seperated into more columns
+
+![vm_cost_by_tag](images/vm_cost_by_tag.png)
+- Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
+- Select the 'Add a chart' tab, and select the 'stacked column chart'
+- Under dimension, select 'tags.key'
+- Under breakdown dimension, select 'service.description'
+- Under metric, select 'cost'
+- At the bottom of properties, select 'Add a filter' and 'Create a filter'
+- Set the filter to 'include' 'service.description' 'Equal to (=)' 'Compute Engine'
+- Select 'AND' 'exclude' 'tags.key' 'Equal to (=)' 'NULL' (This removes any resources that are not tagged)
+- You can add text to title the chart
+
+![instance_by_machine_type](images/instance_by_machine_type.png)
+- Select data source as 'resource_compute_googleapis_com_Instance'
+- Select the 'Add a chart' tab, and select the 'bar chart'
+- Select 'Add a field' and input the following into the Formula and set the 'Field Name' as 'Machine Type'
+```SQL
+REGEXP_EXTRACT(resource.data.machineType, "/([\\w\\.-]+)$")
+```
+- Under dimension, select 'Machine Type'
+- Under metric, select 'Machine Type'
+- You can add text to title the chart
+
+![asset_status](images/asset_status.png)
+- Select data source as 'resource_compute_googleapis_com_Instance'
+- Select the 'Add a chart' tab, and select the 'Donut chart'
+- Under dimension, select 'resource.data.status'
+- Under metric, select 'Record Count'
+- You can add text to title the chart
+
+![location_distribution](images/location_distribution.png)
+- Select data source as 'resource_compute_googleapis_com_Instance'
+- Select the 'Add a chart' tab, and select the 'Donut chart'
+- Under dimension, select 'resource.location'
+- Under metric, select 'Record Count'
+- You can add text to title the chart
+
+![compute_instances](images/compute_instances.png)
+- Select data source as 'resource_compute_googleapis_com_Instance'
+- Select the 'Add a chart' tab, and select the 'table'
+- Select 'Add a field' and input the following into the Formula and set the 'Field Name' as 'Display Type'
+```SQL
+REGEXP_EXTRACT(name, "/([\\w\\.-]+)$")
+```
+- Under dimension, select 'Display Type'
+- Add dimension and select 'resource.location'
+- Do the following for any additional fields you want to see
+- You can add text to title the chart
+
+![compute_total_cost](images/compute_total_cost.png)
+- Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
+- Select the 'Add a chart' tab, and select the 'Scorecard'
+- Under metric, select 'cost'
+- At the bottom of properties, select 'Add a filter' and 'Create a filter'
+- Set the filter to 'include' 'service.description' 'Equal to (=)' 'Compute Engine'
+- You can add text to title the chart
