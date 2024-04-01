@@ -18,7 +18,7 @@ Looker studios can  then connect to the data for visualization.
     - Artifact Registry Create-on-Push Writer
  - Set [Billing data to export to BigQuery](https://cloud.google.com/billing/docs/how-to/export-data-bigquery-setup)
 
-## Setu
+## Setup
 
 ### Big Query
 Here, we will create a dataset for the asset data to be exported into.
@@ -302,7 +302,7 @@ Doing so generates multiple tables of varying asset types with more data being s
 - Select data source as 'gcp_billing_export_v1_<BILLING_ACCOUNT_ID>'
 - Select the 'Add a chart' tab, and select the 'stacked column chart'
 - Under dimension, select 'tags.key'
-- Under breakdown dimension, select 'service.description'
+- Under breakdown dimension, select 'tags.value'
 - Under metric, select 'cost'
 - At the bottom of properties, select 'Add a filter' and 'Create a filter'
 - Set the filter to 'include' 'service.description' 'Equal to (=)' 'Compute Engine'
