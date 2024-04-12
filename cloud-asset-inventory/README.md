@@ -9,7 +9,14 @@ Cloud Scheduler triggers a cloud function through a pub/sub topic, which then ca
 Looker studios can  then connect to the data for visualization.
 
 ## Pre-requisites
- - Enable Cloud Asset API & Cloud Resource Manager
+ - Enable the following APIs:
+    - Cloud Asset API
+    - Cloud Resource Manager
+    - Cloud Pub/Sub
+    - Cloud Run Admin API
+    - Cloud Scheduler API
+    - BigQuery API
+    - Looker Studio API
  - Service Account with the following roles:
     - Cloud Run Invoker
     - BigQuery Admin
