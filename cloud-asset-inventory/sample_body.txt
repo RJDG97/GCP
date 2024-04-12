@@ -1,0 +1,6 @@
+{
+  "message": {
+    "dataset": "cai_dataset",
+    "content": ["RESOURCE","RELATIONSHIP"]
+  }
+}

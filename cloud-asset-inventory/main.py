@@ -1,3 +1,5 @@
+import base64
+import json
 import functions_framework
 import requests
 from google.cloud import bigquery
@@ -9,16 +11,20 @@ from google.auth import default
 def update_cai(cloud_event):
   _, project_id = default()
 
+  # Decode message
+  data_string = base64.b64decode(cloud_event.data["message"]["data"])
+  data_string = data_string.decode('utf-8').strip("'")
+  message_data = json.loads(data_string)
+
   # Connect to clients
   asset_client = asset_v1.AssetServiceClient()
   bq_client = bigquery.Client(project=project_id)
-  # List of available content to export
-  content_list = ["RESOURCE","RELATIONSHIP"] # ,"IAM_POLICY","ORG_POLICY","ACCESS_POLICY","OS_INVENTORY"
+
+  content_list = message_data['message']['content'] # "RESOURCE","RELATIONSHIP","IAM_POLICY","ORG_POLICY","ACCESS_POLICY","OS_INVENTORY"
 
   # Set Dataset and table to export data to BigQuery
-  dataset_name = "cai_dataset" # Replace accordingly
+  dataset_name = message_data['message']['dataset']
   dataset_id = f"{project_id}.{dataset_name}"
-  # If Dataset was not created, it will create it
   dataset = bq_client.create_dataset(dataset_id, exists_ok=True)
   for content in content_list:
     table_name = content.lower() 
@@ -41,7 +47,7 @@ def update_cai(cloud_event):
     print(response.result())
     print("Export complete")
     
-    # Export CAI data to BigQuery by asset type
+    # By Asset
     output_config.bigquery_destination.separate_tables_per_asset_type = True
     request=asset_v1.ExportAssetsRequest(
       parent =  parent,
