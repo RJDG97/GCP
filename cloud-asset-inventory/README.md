@@ -10,19 +10,24 @@ Looker studios can  then connect to the data for visualization.
 
 ## Pre-requisites
  - Enable the following APIs:
-    - Cloud Asset API
-    - Cloud Resource Manager
-    - Cloud Pub/Sub
-    - Cloud Run Admin API
     - Cloud Scheduler API
+    - Cloud Pub/Sub
+    - Cloud Functions
+    - Cloud Build
+    - Cloud Asset API
+    - Cloud Run Admin API
     - BigQuery API
+    - Vloud Billing
+    - BigQuery Data Transfer Service API 
     - Looker Studio API
  - Service Account with the following roles:
     - Cloud Run Invoker
-    - BigQuery Admin
-    - Logs Writer
-    - Storage Object Admin
-    - Artifact Registry Create-on-Push Writer
+    - Cloud Asset Viewer
+    - BigQuery Data Editor
+
+ - One time roles required for Billing export
+    - Billing Account Costs Manager
+    - Billing Account Administrator
  - Set [Billing data to export to BigQuery](https://cloud.google.com/billing/docs/how-to/export-data-bigquery-setup)
 
 ## Setup
