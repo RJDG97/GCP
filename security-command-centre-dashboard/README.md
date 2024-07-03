@@ -2,7 +2,7 @@
 
 Within Google Cloud Platform, this is a guide to set up a Security Command Center feed export to BigQuery for Looker visualization.
 
-![Architecture Diagram.](images/architecture.png)
+![Architecture Diagram.](images/Architecture.png)
 
 ## How it works
 Security Command Center will export findings in near real-time to BigQuery. Looker studios can  then connect to the data for visualization.
