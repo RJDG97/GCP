@@ -10,7 +10,7 @@ Security Command Center will export findings in near real-time to BigQuery. Look
 ## Setup
 
 ### Big Query
-Here, we will create a dataset for the asset data to be exported into.
+Here, we will create a dataset for the SCC finding data to be exported into.
  - On the left, select the options (the 3 dots) next to your project 
  - Select 'Create data set'
  - Fill in the data set ID and select 'Create Data Set'
@@ -74,6 +74,9 @@ Sample json can be found in the same repo under sample_finding_json.yaml
 
 ## Looker Studios
 ### Dashboard Setup
+
+![Sample Findings Dashboard](images/SCC_Dashboard.png)
+
 #### Creating a report and adding data
 - On [Looker Studios](https://lookerstudio.google.com/), create a blank report.
 - Select BigQuery.
