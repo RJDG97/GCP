@@ -1,0 +1,68 @@
+{
+    "finding": {
+      "access": {},
+      "application": {},
+      "attackExposure": {},
+      "canonicalName": "projects/943618429378/sources/5778857791920892465/locations/global/findings/78bd3e8e18ca74a856f677693ffa80da",
+      "category": "compute_detect_Disabled_backend_service_logs",
+      "cloudDlpDataProfile": {},
+      "cloudDlpInspection": {},
+      "createTime": "2024-07-03T07:20:47.751Z",
+      "database": {},
+      "description": "Logging is disabled on backend services or sampling rate is not 1.0",
+      "eventTime": "2024-07-03T07:20:47.574Z",
+      "exfiltration": {},
+      "findingClass": "MISCONFIGURATION",
+      "findingProviderId": "organizations/317883503616/firstPartyFindingProviders/sha_custom",
+      "indicator": {},
+      "kernelRootkit": {},
+      "kubernetes": {},
+      "mitreAttack": {},
+      "moduleName": "projects/943618429378/securityHealthAnalyticsSettings/customModules/11837129386180451283",
+      "mute": "UNDEFINED",
+      "muteUpdateTime": "1970-01-01T00:00:00Z",
+      "name": "organizations/317883503616/sources/5778857791920892465/locations/global/findings/78bd3e8e18ca74a856f677693ffa80da",
+      "nextSteps": "Enable logging on backend services and set sampling rate as 1.0",
+      "parent": "organizations/317883503616/sources/5778857791920892465/locations/global",
+      "parentDisplayName": "Security Health Analytics Custom",
+      "resourceName": "//compute.googleapis.com/projects/renzo-intern-lab/regions/us-west1/backendServices/3770551032038901025",
+      "securityPosture": {},
+      "severity": "MEDIUM",
+      "state": "ACTIVE",
+      "vulnerability": {},
+      "externalSystems": {}
+    },
+    "resource": {
+      "name": "//compute.googleapis.com/projects/renzo-intern-lab/regions/us-west1/backendServices/3770551032038901025",
+      "displayName": "test-217-disallow",
+      "type": "google.compute.RegionBackendService",
+      "cloudProvider": "GOOGLE_CLOUD_PLATFORM",
+      "service": "compute.googleapis.com",
+      "location": "us-west1",
+      "gcpMetadata": {
+        "project": "//cloudresourcemanager.googleapis.com/projects/943618429378",
+        "projectDisplayName": "renzo-intern-lab",
+        "parent": "//cloudresourcemanager.googleapis.com/projects/943618429378",
+        "parentDisplayName": "renzo-intern-lab",
+        "organization": "organizations/317883503616"
+      },
+      "resourcePath": {
+        "nodes": [
+          {
+            "nodeType": "GCP_PROJECT",
+            "id": "projects/943618429378",
+            "displayName": "renzo-intern-lab"
+          },
+          {
+            "nodeType": "GCP_ORGANIZATION",
+            "id": "organizations/317883503616"
+          }
+        ]
+      },
+      "resourcePathString": "organizations/317883503616/projects/943618429378"
+    },
+    "sourceProperties": {
+      "log_config": "false",
+      "log_sample_rate": "0.0"
+    }
+  }
